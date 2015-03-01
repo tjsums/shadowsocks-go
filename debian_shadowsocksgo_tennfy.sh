@@ -231,10 +231,6 @@ update-rc.d shadowsocks defaults
 }
 ############################### install function##################################
 function install_shadowsocksgo_tennfy(){
-
-# Make sure only root can run our script
-check_sanity
-
 # install
 apt-get update
 apt-get install -y --force-yes git mercurial curl
@@ -280,7 +276,10 @@ function update_shadowsocksgo_tennfy(){
 	 
 	 echo "Shadowsocks-go update success!"
 }
-# Initialization
+############################### Initialization##################################
+# Make sure only root can run our script
+check_sanity
+
 action=$1
 [  -z $1 ] && action=install
 case "$action" in
