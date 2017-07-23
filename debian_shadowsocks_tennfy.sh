@@ -339,19 +339,15 @@ function InstallShadowsocks()
     echo '-----------------------------------------------------------------'
     echo ''
 	#input server port
-	declare -i server_port
 	while :
 	do
         read -p "input server port(443 is default): " server_port
-	    if [ -z ${server_port} ]; then
-		    server_port=443
-			break
+		[ -z "$server_port" ] && server_port=443
+        if [[ ! $server_port =~ ^[1-65535]$ ]]
+		then
+		    echo -e "${CFAILURE}[Error] The server port should be between 1 to 65535! ${CEND}"
 		else
-            if CheckServerPort server_port; then
-			    break
-			else
-			    echo -e "${CFAILURE}[Error] The server port should be between 1 to 65535! ${CEND}"
-			fi
+		    break
 		fi
 	done
 	
