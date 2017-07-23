@@ -320,6 +320,7 @@ function InstallShadowsocks()
     echo '-----------------------------------------------------------------'
     echo ''
 	#input server port
+	declare -i server_port
 	while :
 	do
         read -p "input server port(443 is default): " server_port
