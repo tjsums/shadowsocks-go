@@ -149,7 +149,7 @@ function InstallShadowsocksCore()
 		
     #download shadowsocks-go
     wget --no-check-certificate https://github.com/shadowsocks/shadowsocks-go/releases/download/${ShadowsocksVersion}/shadowsocks-server.tar.gz
-    tar zxvf shadowsocks-libev-${ShadowsocksVersion}.tar.gz -C ${ShadowsocksDir}/packages
+    tar zxvf shadowsocks-server.tar.gz -C ${ShadowsocksDir}/packages
 	rm -f shadowsocks-server.tar.gz
 	
     chmod +x ${ShadowsocksDir}/packages/shadowsocks-server/shadowsocks-server
