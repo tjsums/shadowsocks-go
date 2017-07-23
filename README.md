@@ -1,4 +1,6 @@
 # Shadowsocks-go
+
+## Intro
 Debian/Ubuntu shadowsocks-go one-click script
 
 ## Requirements
@@ -7,24 +9,24 @@ Debian/Ubuntu shadowsocks-go one-click script
 
 ## Use
 ### Download Script
-`
+```bash
 wget --no-check-certificate https://raw.githubusercontent.com/tennfy/shadowsocks-go/master/debian_shadowsocks_tennfy.sh
-`
+```
 
 ### Install
-`
+```bash
 bash debian_shadowsocks_tennfy.sh
-`
+```
 
 ### Uninstall
-`
+```bash
 bash debian_shadowsocks_tennfy.sh uninstall
-`
+```
 
 ### Update
-`
+```bash
 bash debian_shadowsocks_tennfy.sh update
-`
+```
 
 ## Author
 * tennfy
