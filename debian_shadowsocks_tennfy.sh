@@ -160,136 +160,113 @@ function InstallShadowsocksCore()
 	mkdir -p /etc/${ShadowsocksType}
 	
 cat > /etc/init.d/${ShadowsocksType}<<-"EOF"
-#!/bin/sh
+#!/bin/bash
+# Start/stop shadowsocks.
+#
 ### BEGIN INIT INFO
-# Provides:          shadowsocks-go
-# Required-Start:    $network $local_fs $remote_fs
-# Required-Stop:     $remote_fs
+# Provides:          shadowsocks
+# Required-Start:
+# Required-Stop:
+# Should-Start:
+# Should-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: lightweight secured socks5 proxy
-# Description:       Shadowsocks-go is a lightweight secured
-#                    socks5 proxy for embedded devices and low end boxes.
+# Short-Description: shadowsocks is a lightweight tunneling proxy
+# Description:       Modified from Linode's nginx fastcgi startup script
 ### END INIT INFO
-
-# PATH should only include /usr/ if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=$NAME                       # Introduce a short description here
-DAEMON_ARGS="-u"                 # Arguments to run the daemon with
-PIDFILE=/var/run/$NAME/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
+# Note: this script requires sudo in order to run shadowsocks as the specified
+# user.
+PATH=/sbin:/usr/sbin:/bin:/usr/bin            
+LOG_FILE=/var/log/$NAME.log             
+PID_DIR=/var/run
+PID_FILE=$PID_DIR/$NAME.pid
 USER=root
-GROUP=root
-
-# Exit if the package is not installed
-[ -x $DAEMON ] || exit 0
-
-# Load the VERBOSE setting and other rcS variables
-. /lib/init/vars.sh
-
-# Define LSB log_* functions.
-# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
-. /lib/lsb/init-functions
-
-#
-# Function that starts the daemon/service
-#
-do_start()
-{
-    # Modify the file descriptor limit
-    ulimit -n 32768
-
-    # Take care of pidfile permissions
-    mkdir /var/run/$NAME 2>/dev/null || true
-    chown "$USER:$GROUP" /var/run/$NAME
-
-    # Return
-    #   0 if daemon has been started
-    #   1 if daemon was already running
-    #   2 if daemon could not be started
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON --test > /dev/null \
-        || return 1
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON -- \
-        -c "$CONFFILE" -u -f $PIDFILE $DAEMON_ARGS \
-        || return 2
+GROUP=root  
+RET_VAL=0
+[ -x $BIN ] || exit 0
+check_running() {
+  if [[ -r $PID_FILE ]]; then
+    read PID <$PID_FILE
+    if [[ -d "/proc/$PID" ]]; then
+      return 0
+    else
+      rm -f $PID_FILE
+      return 1
+    fi
+  else
+    return 2
+  fi
 }
-
-#
-# Function that stops the daemon/service
-#
-do_stop()
-{
-    # Return
-    #   0 if daemon has been stopped
-    #   1 if daemon was already stopped
-    #   2 if daemon could not be stopped
-    #   other if a failure occurred
-    start-stop-daemon --stop --quiet --retry=TERM/5 --pidfile $PIDFILE --exec $DAEMON
-    RETVAL="$?"
-    [ "$RETVAL" = 2 ] && return 2
-    # Wait for children to finish too if this is a daemon that forks
-    # and if the daemon is only ever run from this initscript.
-    # If the above conditions are not satisfied then add some other code
-    # that waits for the process to drop all resources that could be
-    # needed by services started subsequently.  A last resort is to
-    # sleep for some time.
-    start-stop-daemon --stop --quiet --oknodo --retry=KILL/5 --exec $DAEMON
-    [ "$?" = 2 ] && return 2
-    # Many daemons don't delete their pidfiles when they exit.
-    rm -f $PIDFILE
-    return "$RETVAL"
+do_status() {
+  check_running
+  case $? in
+    0)
+      echo "$NAME running with PID $PID"
+      ;;
+    1)
+      echo "$NAME not running, remove PID file $PID_FILE"
+      ;;
+    2)
+      echo "Could not find PID file $PID_FILE, $NAME does not appear to be running"
+      ;;
+  esac
+  return 0
 }
-
-
+do_start() {
+  if [[ ! -d $PID_DIR ]]; then
+    echo "creating PID dir"
+    mkdir $PID_DIR || echo "failed creating PID directory $PID_DIR"; exit 1
+    chown $USER:$GROUP $PID_DIR || echo "failed creating PID directory $PID_DIR"; exit 1
+    chmod 0770 $PID_DIR
+  fi
+  if check_running; then
+    echo "shadowsocks already running with PID $PID"
+    return 0
+  fi
+  if [[ ! -r $CONFIG_FILE ]]; then
+    echo "config file $CONFIG_FILE not found"
+    return 1
+  fi
+  echo "starting $NAME"
+  # sudo will set the group to the primary group of $USER
+  $BIN -c $CONFIG_FILE >>$LOG_FILE &
+  PID=$!
+  echo $PID > $PID_FILE
+  sleep 0.3
+  if ! check_running; then
+    echo "start failed"
+    return 1
+  fi
+  echo "$NAME running with PID $PID"
+  return 0
+}
+do_stop() {
+  if check_running; then
+    echo "stopping $NAME with PID $PID"
+    kill $PID
+    rm -f $PID_FILE
+  else
+    echo "Could not find PID file $PID_FILE"
+  fi
+}
+do_restart() {
+  do_stop
+  do_start
+}
 case "$1" in
-    start)
-        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
-        do_start
-        case "$?" in
-            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-    esac
+  start|stop|restart|status)
+    do_$1
     ;;
-stop)
-    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-    do_stop
-    case "$?" in
-        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-esac
-;;
-  status)
-      status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-      ;;
-  restart|force-reload)
-      log_daemon_msg "Restarting $DESC" "$NAME"
-      do_stop
-      case "$?" in
-          0|1)
-              do_start
-              case "$?" in
-                  0) log_end_msg 0 ;;
-              1) log_end_msg 1 ;; # Old process is still running
-          *) log_end_msg 1 ;; # Failed to start
-      esac
-      ;;
   *)
-      # Failed to stop
-      log_end_msg 1
-      ;;
-    esac
-    ;;
-*)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
-    exit 3
+    echo "Usage: $NAME {start|stop|restart|status}"
+    RET_VAL=1
     ;;
 esac
-
-:
+exit $RET_VAL
 EOF
     sed -i "/PATH=/a\NAME=${ShadowsocksType}" /etc/init.d/${ShadowsocksType}
-    sed -i "/PATH=/a\CONFFILE=\/etc\/${ShadowsocksType}\/config.json" /etc/init.d/${ShadowsocksType}
-    sed -i "/PATH=/a\DAEMON=${ShadowsocksDir}\/packages/shadowsocks-go\/shadowsocks-server" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/a\CONFIG_FILE=\/etc\/${ShadowsocksType}\/config.json" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/a\BIN=${ShadowsocksDir}\/packages/shadowsocks-go\/shadowsocks-server" /etc/init.d/${ShadowsocksType}
     chmod +x /etc/init.d/${ShadowsocksType}
 }
 function UninstallShadowsocksCore()
