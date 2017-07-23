@@ -157,7 +157,7 @@ function InstallShadowsocksCore()
     #create configuration directory
 	mkdir -p /etc/${ShadowsocksType}
 	
-cat > /etc/init.d/${ShadowsocksType}<<-EOF
+cat > /etc/init.d/${ShadowsocksType}<<-"EOF"
 #!/bin/bash
 # Start/stop shadowsocks.
 #
@@ -176,13 +176,12 @@ cat > /etc/init.d/${ShadowsocksType}<<-EOF
 # Note: this script requires sudo in order to run shadowsocks as the specified
 # user.
 
-BIN=${ShadowsocksDir}/packages/shadowsocks-server/shadowsocks-server
-CONFIG_FILE=/etc/${ShadowsocksType}/config.json
-LOG_FILE=/var/log/${ShadowsocksType}
-USER=root
-GROUP=root
+PATH=/sbin:/usr/sbin:/bin:/usr/bin            
+LOG_FILE=/var/log/$NAME.log             
 PID_DIR=/var/run
-PID_FILE=$PID_DIR/${ShadowsocksType}.pid
+PID_FILE=$PID_DIR/$NAME.pid
+USER=root
+GROUP=root  
 RET_VAL=0
 
 [ -x $BIN ] || exit 0
@@ -205,13 +204,13 @@ do_status() {
   check_running
   case $? in
     0)
-      echo "${ShadowsocksType} running with PID $PID"
+      echo "$NAME running with PID $PID"
       ;;
     1)
-      echo "${ShadowsocksType} not running, remove PID file $PID_FILE"
+      echo "$NAME not running, remove PID file $PID_FILE"
       ;;
     2)
-      echo "Could not find PID file $PID_FILE, ${ShadowsocksType} does not appear to be running"
+      echo "Could not find PID file $PID_FILE, $NAME does not appear to be running"
       ;;
   esac
   return 0
@@ -232,7 +231,7 @@ do_start() {
     echo "config file $CONFIG_FILE not found"
     return 1
   fi
-  echo "starting ${ShadowsocksType}"
+  echo "starting $NAME"
   # sudo will set the group to the primary group of $USER
   sudo -u $USER $BIN -c $CONFIG_FILE >>$LOG_FILE &
   PID=$!
@@ -242,13 +241,13 @@ do_start() {
     echo "start failed"
     return 1
   fi
-  echo "${ShadowsocksType} running with PID $PID"
+  echo "$NAME running with PID $PID"
   return 0
 }
 
 do_stop() {
   if check_running; then
-    echo "stopping ${ShadowsocksType} with PID $PID"
+    echo "stopping $NAME with PID $PID"
     kill $PID
     rm -f $PID_FILE
   else
@@ -266,13 +265,16 @@ case "$1" in
     do_$1
     ;;
   *)
-    echo "Usage: ${ShadowsocksType} {start|stop|restart|status}"
+    echo "Usage: $NAME {start|stop|restart|status}"
     RET_VAL=1
     ;;
 esac
 
 exit $RET_VAL
 EOF
+    sed -i "/PATH=/i\NAME=${ShadowsocksType}" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/i\CONFIG_FILE=\/etc\/${ShadowsocksType}\/config.json" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/i\BIN=${ShadowsocksDir}\/packages/shadowsocks-server\/shadowsocks-server" /etc/init.d/${ShadowsocksType}
     chmod +x /etc/init.d/${ShadowsocksType}
 }
 function UninstallShadowsocksCore()
@@ -369,7 +371,7 @@ function InstallShadowsocks()
 		[ -z "$encrypt_method_num" ] && encrypt_method_num=1
 		if [[ ! $encrypt_method_num =~ ^[1-${#Ciphers[@]}]$ ]]
 		then
-			echo "${CWARNING} input error! Please only input number 1~${#Ciphers[@]} ${CEND}"
+			echo -e "${CWARNING} input error! Please only input number 1~${#Ciphers[@]} ${CEND}"
 		else
 			encrypt_method=${Ciphers[$(let $encrypt_method_num -1)]}			
 			break
