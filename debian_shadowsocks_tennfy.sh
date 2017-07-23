@@ -97,6 +97,17 @@ function CheckServerPort()
 	    return 1
 	fi
 }
+function GetLatestShadowsocksVersion()
+{
+	local shadowsocksurl=`curl -s https://api.github.com/repos/shadowsocks/${ShadowsocksType}/releases/latest | grep tag_name | cut -d '"' -f 4`
+	
+	if [ $? -ne 0 ]
+	then
+	    Die "Get latest shadowsocks version failed!"
+	else
+	    ShadowsocksVersion=`echo $shadowsocksurl`
+	fi
+}
 function InstallGoEnvironment() 
 {
     #create go directory
@@ -133,14 +144,15 @@ function InstallShadowsocksCore()
     apt-get update
     apt-get install -y --force-yes git mercurial curl
 	
-    #install go environment
-	InstallGoEnvironment
+    #get latest shadowsocks-libev release version
+	GetLatestShadowsocksVersion
 		
     #download shadowsocks-go
-    mkdir ${ShadowsocksDir}/packages/${ShadowsocksType}
-    go get github.com/shadowsocks/shadowsocks-go/cmd/shadowsocks-server
-
-    chmod +x ${ShadowsocksDir}/packages/bin/shadowsocks-server
+    wget --no-check-certificate https://github.com/shadowsocks/shadowsocks-go/releases/download/${ShadowsocksVersion}/shadowsocks-server.tar.gz
+    tar zxvf shadowsocks-libev-${ShadowsocksVersion}.tar.gz -C ${ShadowsocksDir}/packages
+	rm -f shadowsocks-server.tar.gz
+	
+    chmod +x ${ShadowsocksDir}/packages/shadowsocks-server/shadowsocks-server
 
     #create configuration directory
 	mkdir -p /etc/${ShadowsocksType}
@@ -164,7 +176,7 @@ cat > /etc/init.d/${ShadowsocksType}<<-EOF
 # Note: this script requires sudo in order to run shadowsocks as the specified
 # user.
 
-BIN=${ShadowsocksDir}/bin/shadowsocks-server
+BIN=${ShadowsocksDir}/packages/shadowsocks-server/shadowsocks-server
 CONFIG_FILE=/etc/${ShadowsocksType}/config.json
 LOG_FILE=/var/log/${ShadowsocksType}
 USER=root
