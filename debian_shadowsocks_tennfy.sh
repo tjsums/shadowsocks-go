@@ -343,11 +343,11 @@ function InstallShadowsocks()
 	do
         read -p "input server port(443 is default): " server_port
 		[ -z "$server_port" ] && server_port=443
-        if [[ ! $server_port =~ ^[1-65535]$ ]]
+        if CheckServerPort $(($server_port))
 		then
-		    echo -e "${CFAILURE}[Error] The server port should be between 1 to 65535! ${CEND}"
-		else
 		    break
+		else
+		    echo -e "${CFAILURE}[Error] The server port should be between 1 to 65535! ${CEND}"
 		fi
 	done
 	
