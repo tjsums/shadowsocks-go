@@ -174,10 +174,8 @@ cat > /etc/init.d/${ShadowsocksType}<<-"EOF"
 
 # PATH should only include /usr/ if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=shadowsocks-libev       # Introduce a short description here
-NAME=shadowsocks-libev       # Introduce the short server's name here
-DAEMON=/usr/bin/ss-server    # Introduce the server's location here
-DAEMON_ARGS="-u"               # Arguments to run the daemon with
+DESC=$NAME                       # Introduce a short description here
+DAEMON_ARGS="-u"                 # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 USER=root
