@@ -320,7 +320,7 @@ function InstallShadowsocks()
     echo '-----------------------------------------------------------------'
     echo ''
 	#input server port
-	while:
+	while :
 	do
         read -p "input server port(443 is default): " server_port
 	    if [ -z ${server_port} ]; then
@@ -363,7 +363,7 @@ function InstallShadowsocks()
 	echo ''
 	echo '-----------------------------------------------------------------'
 	echo ''
-	while:
+	while :
 	do
         read -p "input password: " shadowsocks_pwd
 	    if [ -z ${shadowsocks_pwd} ]; then
