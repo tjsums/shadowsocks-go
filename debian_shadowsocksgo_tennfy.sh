@@ -1,100 +1,150 @@
 #! /bin/bash
 #===============================================================================================
-#   System Required:  Debian or Ubuntu (32bit/64bit)
+#   System Required:  debian or ubuntu (32bit/64bit)
 #   Description:  Install Shadowsocks(go) for Debian or Ubuntu
 #   Author: tennfy <admin@tennfy.com>
 #   Intro:  http://www.tennfy.com
 #===============================================================================================
-
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 clear
-echo "#############################################################"
-echo "# Install Shadowsocks(go) for Debian or Ubuntu (32bit/64bit)"
-echo "# Intro: http://www.tennfy.com"
-echo "#"
-echo "# Author: tennfy <admin@tennfy.com>"
-echo "#"
-echo "#############################################################"
-echo ""
-function check_sanity {
+echo '-----------------------------------------------------------------'
+echo '   Install Shadowsocks(go) for debian or ubuntu (32bit/64bit) '
+echo '   Intro:  http://www.tennfy.com                                 '
+echo '   Author: tennfy <admin@tennfy.com>                             '
+echo '-----------------------------------------------------------------'
+
+#Variables
+ShadowsocksType='shadowsocks-go'
+ShadowsocksDir='/opt/shadowsocks'
+GoDir='/opt/goenv'
+
+#Version
+ShadowsocksVersion=''
+GolangVersion='1.3'
+
+#ciphers
+Ciphers=(
+chacha20
+rc4-md5
+aes-256-cfb   
+)
+
+#color
+CEND="\033[0m"
+CMSG="\033[1;36m"
+CFAILURE="\033[1;31m"
+CSUCCESS="\033[32m"
+CWARNING="\033[1;33m"
+
+function Die()
+{
+	echo -e "${CFAILURE}[Error] $1 ${CEND}"
+	exit 1
+}
+function CheckSanity()
+{
 	# Do some sanity checking.
 	if [ $(/usr/bin/id -u) != "0" ]
 	then
-		die 'Must be run by root user'
+		Die 'Must be run by root user'
 	fi
 
 	if [ ! -f /etc/debian_version ]
 	then
-		die "Distribution is not supported"
+		Die "Distribution is not supported"
 	fi
 }
-
-function die {
-	echo "ERROR: $1" > /dev/null 1>&2
-	exit 1
-}
-
-function install_go_environment() {
-
-#install go environment
-ldconfig
-if [ $(getconf WORD_BIT) = '32' ] && [ $(getconf LONG_BIT) = '64' ] ; then
-	wget --no-check-certificate http://golang.org/dl/go1.3.linux-amd64.tar.gz 
-	tar xf go1.3.linux-amd64.tar.gz
-	rm go1.3.linux-amd64.tar.gz
-else
-	wget --no-check-certificate http://golang.org/dl/go1.3.linux-386.tar.gz 
-	tar xf go1.3.linux-386.tar.gz
-	rm go1.3.linux-386.tar.gz
-fi
-
-echo "export GOROOT=\$HOME/go" >> ~/.profile
-echo "PATH=$PATH:\$GOROOT/bin" >> ~/.profile
-source ~/.profile
-mkdir ~/gocode
-echo "export GOPATH=\$HOME/gocode" >> ~/.profile
-echo "PATH=\$PATH:\$GOPATH/bin" >> ~/.profile
-source ~/.profile
-
-}
-
-function install_shadowsocks_go() {
-#download shadowsocks-go
-
-go get github.com/shadowsocks/shadowsocks-go/cmd/shadowsocks-server
-
-chmod +x /root/gocode/bin/shadowsocks-server
-
-# Get IP address(Default No.1)
-IP=`curl -s checkip.dyndns.com | cut -d' ' -f 6  | cut -d'<' -f 1`
-if [ -z $IP ]; then
-   IP=`curl -s ifconfig.me/ip`
-fi
-
-#config setting
-echo "#############################################################"
-echo "#"
-echo "# Please input your shadowsocks server_port and password"
-echo "#"
-echo "#############################################################"
-echo ""
-echo "input server_port(443 is suggested):"
-read serverport
-echo "input password:"
-read shadowsockspwd
-
-# Config shadowsocks
-cat > /root/gocode/bin/config.json<<-EOF
+function GetDebianVersion()
 {
-    "server":"${IP}",
-    "server_port":${serverport},
-    "local_port":1080,
-    "password":"${shadowsockspwd}",
-    "timeout":60,
-    "method":"rc4-md5"
+	if [ -f /etc/debian_version ]
+	then
+		local main_version=$1
+		local debian_version=`cat /etc/debian_version|awk -F '.' '{print $1}'`
+		if [ "${main_version}" == "${debian_version}" ]
+		then
+		    return 0
+		else 
+			return 1
+		fi
+	else
+		Die "Distribution is not supported"
+	fi    	
 }
-EOF
+function GetSystemBit()
+{
+	ldconfig
+	if [ $(getconf WORD_BIT) = '32' ] && [ $(getconf LONG_BIT) = '64' ] 
+	then
+		if [ '64' = $1 ]; then
+		    return 0
+		else
+		    return 1
+		fi			
+	else
+		if [ '32' = $1 ]; then
+		    return 0
+		else
+		    return 1
+		fi		
+	fi
+}
+function CheckServerPort()
+{
+    if [ $1 -ge 1 ] && [ $1 -le 65535 ]
+	then 
+	    return 0
+	else
+	    return 1
+	fi
+}
+function InstallGoEnvironment() 
+{
+    #create go directory
+	if [ -d ${GoDir} ]
+	then 
+	    rm -rf ${GoDir}
+	fi
+	mkdir ${GoDir}
+	
+    #install go environment
+    if GetSystemBit 64; then
+	    wget --no-check-certificate http://golang.org/dl/go${GolangVersion}.linux-amd64.tar.gz 
+	    tar xf go${GolangVersion}.linux-amd64.tar.gz -C ${GoDir}
+	    rm go${GolangVersion}.linux-amd64.tar.gz
+    else
+	    wget --no-check-certificate http://golang.org/dl/go${GolangVersion}.tar.gz 
+	    tar xf go${GolangVersion}.linux-386.tar.gz -C ${GoDir}
+	    rm go${GolangVersion}.linux-386.tar.gz
+    fi
 
-cat > /etc/init.d/shadowsocks<<-"EOF"
+    #set go environment variables
+	echo "export GOROOT=\${GoDir}/go" >> ~/.profile
+	echo "PATH=$PATH:\$GOROOT/bin" >> ~/.profile
+	source ~/.profile
+	
+	echo "export GOPATH=\${ShadowsocksDir}" >> ~/.profile
+	echo "PATH=\$PATH:\$GOPATH/bin" >> ~/.profile
+	source ~/.profile
+}
+
+function InstallShadowsocksCore() 
+{
+    #install
+    apt-get update
+    apt-get install -y --force-yes git mercurial curl
+	
+    #install go environment
+	InstallGoEnvironment
+		
+    #download shadowsocks-go
+    go get github.com/shadowsocks/shadowsocks-go/cmd/shadowsocks-server
+
+    chmod +x ${ShadowsocksDir}/bin/shadowsocks-server
+
+    #create configuration directory
+	mkdir -p /etc/${ShadowsocksType}
+	
+cat > /etc/init.d/${ShadowsocksType}<<-EOF
 #!/bin/bash
 # Start/stop shadowsocks.
 #
@@ -113,13 +163,13 @@ cat > /etc/init.d/shadowsocks<<-"EOF"
 # Note: this script requires sudo in order to run shadowsocks as the specified
 # user.
 
-BIN=/root/gocode/bin/shadowsocks-server
-CONFIG_FILE=/root/gocode/bin/config.json
-LOG_FILE=/var/log/shadowsocks
+BIN=${ShadowsocksDir}/bin/shadowsocks-server
+CONFIG_FILE=${ShadowsocksDir}/bin/config.json
+LOG_FILE=/var/log/${ShadowsocksType}
 USER=root
 GROUP=root
 PID_DIR=/var/run
-PID_FILE=$PID_DIR/shadowsocks.pid
+PID_FILE=$PID_DIR/${ShadowsocksType}.pid
 RET_VAL=0
 
 [ -x $BIN ] || exit 0
@@ -142,13 +192,13 @@ do_status() {
   check_running
   case $? in
     0)
-      echo "shadowsocks running with PID $PID"
+      echo "${ShadowsocksType} running with PID $PID"
       ;;
     1)
-      echo "shadowsocks not running, remove PID file $PID_FILE"
+      echo "${ShadowsocksType} not running, remove PID file $PID_FILE"
       ;;
     2)
-      echo "Could not find PID file $PID_FILE, shadowsocks does not appear to be running"
+      echo "Could not find PID file $PID_FILE, ${ShadowsocksType} does not appear to be running"
       ;;
   esac
   return 0
@@ -169,7 +219,7 @@ do_start() {
     echo "config file $CONFIG_FILE not found"
     return 1
   fi
-  echo "starting shadowsocks"
+  echo "starting ${ShadowsocksType}"
   # sudo will set the group to the primary group of $USER
   sudo -u $USER $BIN -c $CONFIG_FILE >>$LOG_FILE &
   PID=$!
@@ -179,13 +229,13 @@ do_start() {
     echo "start failed"
     return 1
   fi
-  echo "shadowsocks running with PID $PID"
+  echo "${ShadowsocksType} running with PID $PID"
   return 0
 }
 
 do_stop() {
   if check_running; then
-    echo "stopping shadowsocks with PID $PID"
+    echo "stopping ${ShadowsocksType} with PID $PID"
     kill $PID
     rm -f $PID_FILE
   else
@@ -203,94 +253,200 @@ case "$1" in
     do_$1
     ;;
   *)
-    echo "Usage: shadowsocks {start|stop|restart|status}"
+    echo "Usage: ${ShadowsocksType} {start|stop|restart|status}"
     RET_VAL=1
     ;;
 esac
 
 exit $RET_VAL
 EOF
+    chmod +x /etc/init.d/${ShadowsocksType}
+}
+function UninstallShadowsocksCore()
+{
+    #stop shadowsocks-go process
+	ps -ef | grep -v grep | grep -v ps | grep -i "shadowsocks-server" > /dev/null 2>&1
+	if [ $? -eq 0 ]; then 
+	   /etc/init.d/${ShadowsocksType} stop
+	fi
 
-chmod +x /etc/init.d/shadowsocks
+	#uninstall shadowsocks-libev
+	update-rc.d -f ${ShadowsocksType} remove 
 
-#start
-/etc/init.d/shadowsocks start
+	#uninstall shadowsocks-go
+	rm -f ${ShadowsocksDir}/bin/shadowsocks-server
 
-#start with boot
-update-rc.d shadowsocks defaults
+	# delete config file
+	rm -rf ${ShadowsocksDir}/bin/config.json
 
-#install successfully
-    echo ""
-    echo "Congratulations, shadowsocks-go install completed!"
-    echo -e "Your Server IP: ${IP}"
-    echo -e "Your Server Port: ${serverport}"
-    echo -e "Your Password: ${shadowsockspwd}"
-    echo -e "Your Local Port: 1080"
-    echo -e "Your Encryption Method:rc4-md5"
+	# delete shadowsocks-go init file
+	rm -f /etc/init.d/${ShadowsocksType}
+}
+function Init()
+{	
+	cd /root
+	
+    #create packages and conf directory
+	if [ -d ${ShadowsocksDir} ]
+	then 
+	    rm -rf ${ShadowsocksDir}	
+	fi
+	mkdir ${ShadowsocksDir}
+	mkdir ${ShadowsocksDir}/packages
+	mkdir ${ShadowsocksDir}/conf
 
+	#init system
+	CheckSanity
 }
 ############################### install function##################################
-function install_shadowsocksgo_tennfy(){
-# install
-apt-get update
-apt-get install -y --force-yes git mercurial curl
+function InstallShadowsocks()
+{
+	#initialize
+    Init
+	
+    #install shadowsocks core program
+	InstallShadowsocksCore
+	
+    # Get IP address(Default No.1)	
+    ip=`curl -s checkip.dyndns.com | cut -d' ' -f 6  | cut -d'<' -f 1`
+    if [ -z $ip ]; then
+        ip=`curl -s ifconfig.me/ip`
+    fi
 
-cd $HOME
+    #config setting
+	clear
+    echo '-----------------------------------------------------------------'
+    echo '          Please setup your shadowsocks server                   '
+    echo '-----------------------------------------------------------------'
+    echo ''
+	#input server port
+	while:
+	do
+        read -p "input server port(443 is default): " server_port
+	    if [ -z ${server_port} ]; then
+		    server_port=443
+			break
+		else
+            if CheckServerPort server_port; then
+			    break
+			else
+			    echo -e "${CFAILURE}[Error] The server port should be between 1 to 65535! ${CEND}"
+			fi
+		fi
+	done
+	
+	echo ''
+	echo '-----------------------------------------------------------------'
+	echo ''
+	
+	#select encrypt method
+	while :
+	do
+		echo 'Please select encrypt method:'
+        i=1
+		for var in "${Ciphers[@]}"
+		do
+            echo -e "\t${CMSG}${i}${CEND}. ${var}"
+			let i++
+        done
+		read -p "Please input a number:(Default 1 press Enter) " encrypt_method_num
+		[ -z "$encrypt_method_num" ] && encrypt_method_num=1
+		if [[ ! $encrypt_method_num =~ ^[1-${#Ciphers[@]}]$ ]]
+		then
+			echo "${CWARNING} input error! Please only input number 1~${#Ciphers[@]} ${CEND}"
+		else
+			encrypt_method=${Ciphers[$(let $encrypt_method_num -1)]}			
+			break
+		fi
+	done
+	
+	echo ''
+	echo '-----------------------------------------------------------------'
+	echo ''
+	while:
+	do
+        read -p "input password: " shadowsocks_pwd
+	    if [ -z ${shadowsocks_pwd} ]; then
+		    echo -e "${CFAILURE}[Error] The password is null! ${CEND}"
+		else
+            break
+		fi
+	done	
+         
 
-#install go environment
-install_go_environment
+	echo ''
+	echo '-----------------------------------------------------------------'
+	echo ''
 
-install_shadowsocks_go
+    #config shadowsocks
+cat > /etc/shadowsocks-libev/config.json<<-EOF
+{
+    "server":"${ip}",
+    "server_port":${server_port},
+    "local_port":1080,
+    "password":"${shadowsocks_pwd}",
+    "timeout":60,
+    "method":"${encrypt_method}"
+}
+EOF
+
+    #add system startup
+    update-rc.d ${ShadowsocksType} defaults
+
+    #start service
+    /etc/init.d/${ShadowsocksType} start
+
+    #if failed, start again --debian8 specified
+    if [ $? -ne 0 ]
+	then
+    #failure indication
+	    echo ''
+        echo '-----------------------------------------------------------------'
+		echo ''
+        echo -e "${CFAILURE}Sorry, shadowsocks-libev install failed!${CEND}"
+        echo -e "${CFAILURE}Please contact with admin@tennfy.com${CEND}"
+		echo ''
+		echo '-----------------------------------------------------------------'
+    else	
+        #success indication
+		echo ''
+        echo '-----------------------------------------------------------------'
+		echo ''
+        echo -e "${CSUCCESS}Congratulations, ${ShadowsocksType} install completed!${CEND}"
+        echo -e "Your Server IP: ${ip}"
+        echo -e "Your Server Port: ${server_port}"
+        echo -e "Your Password: ${shadowsocks_pwd}"
+        echo -e "Your Local Port: 1080"
+        echo -e "Your Encryption Method:${encrypt_method}"
+		echo ''
+		echo '-----------------------------------------------------------------'
+    fi
 }
 ############################### uninstall function##################################
-function uninstall_shadowsocksgo_tennfy(){
-
-#stop shadowsocks-go process
-ps -ef | grep -v grep | grep -v ps | grep -i "shadowsocks-server" > /dev/null 2>&1
-if [ $? -eq 0 ]; then 
-   /etc/init.d/shadowsocks stop
-fi
-
-#uninstall shadowsocks-go
-rm -f /root/gocode/bin/shadowsocks-server
-
-# delete config file
-rm -rf /root/gocode/bin/config.json
-
-# delete shadowsocks-go init file
-rm -f /etc/init.d/shadowsocks
-
-#delete start with boot
-update-rc.d -f shadowsocks remove
-
-echo "Shadowsocks-go uninstall success!"
-
+function UninstallShadowsocks()
+{
+    UninstallShadowsocksCore
+    echo -e "${CSUCCESS}${ShadowsocksType} uninstall success!${CEND}"
 }
 ############################### update function##################################
-function update_shadowsocksgo_tennfy(){
-     uninstall_shadowsocksgo_tennfy
-     
-	 cd $HOME
-	 
-	 install_shadowsocks_go
-	 
-	 echo "Shadowsocks-go update success!"
+function UpdateShadowsocks()
+{
+    UninstallShadowsocks
+    InstallShadowsocks
+    echo -e "${CSUCCESS}${ShadowsocksType} update success!${CEND}"
 }
 ############################### Initialization##################################
-# Make sure only root can run our script
-check_sanity
-
 action=$1
-[  -z $1 ] && action=install
+[ -z $1 ] && action=install
 case "$action" in
 install)
-    install_shadowsocksgo_tennfy
+    InstallShadowsocks
     ;;
 uninstall)
-    uninstall_shadowsocksgo_tennfy
+    UninstallShadowsocks
     ;;
 update)
-    update_shadowsocksgo_tennfy
+    UpdateShadowsocks
     ;;	
 *)
     echo "Arguments error! [${action} ]"
