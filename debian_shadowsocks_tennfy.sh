@@ -118,11 +118,11 @@ function InstallGoEnvironment()
     fi
 
     #set go environment variables
-	echo "export GOROOT=\${GoDir}/go" >> ~/.profile
-	echo "PATH=$PATH:\$GOROOT/bin" >> ~/.profile
+	echo "export GOROOT=${GoDir}/go" >> ~/.profile
+	echo "PATH=\$PATH:\$GOROOT/bin" >> ~/.profile
 	source ~/.profile
 	
-	echo "export GOPATH=\${ShadowsocksDir}" >> ~/.profile
+	echo "export GOPATH=${ShadowsocksDir}" >> ~/.profile
 	echo "PATH=\$PATH:\$GOPATH/bin" >> ~/.profile
 	source ~/.profile
 }
@@ -164,7 +164,7 @@ cat > /etc/init.d/${ShadowsocksType}<<-EOF
 # user.
 
 BIN=${ShadowsocksDir}/bin/shadowsocks-server
-CONFIG_FILE=${ShadowsocksDir}/bin/config.json
+CONFIG_FILE=/etc/${ShadowsocksType}/config.json
 LOG_FILE=/var/log/${ShadowsocksType}
 USER=root
 GROUP=root
@@ -274,13 +274,19 @@ function UninstallShadowsocksCore()
 	update-rc.d -f ${ShadowsocksType} remove 
 
 	#uninstall shadowsocks-go
-	rm -f ${ShadowsocksDir}/bin/shadowsocks-server
+	rm -rf ${ShadowsocksDir}
 
-	# delete config file
-	rm -rf ${ShadowsocksDir}/bin/config.json
+	#delete config file
+	rm -rf /etc/${ShadowsocksType}
 
-	# delete shadowsocks-go init file
+	#delete shadowsocks-go init file
 	rm -f /etc/init.d/${ShadowsocksType}
+	
+	#uninstall go environment
+	rm -rf ${GoDir}
+	sed -i '/GOROOT/d' ~/.profile
+	sed -i '/GOPATH/d' ~/.profile
+	source ~/.profile
 }
 function Init()
 {	
@@ -380,7 +386,7 @@ function InstallShadowsocks()
 	echo ''
 
     #config shadowsocks
-cat > /etc/shadowsocks-libev/config.json<<-EOF
+cat > /etc/${ShadowsocksType}/config.json<<-EOF
 {
     "server":"${ip}",
     "server_port":${server_port},
