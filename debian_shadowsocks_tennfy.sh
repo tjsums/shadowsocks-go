@@ -288,12 +288,6 @@ function UninstallShadowsocksCore()
 
 	#delete shadowsocks-go init file
 	rm -f /etc/init.d/${ShadowsocksType}
-	
-	#uninstall go environment
-	rm -rf ${GoDir}
-	sed -i '/GOROOT/d' ~/.profile
-	sed -i '/GOPATH/d' ~/.profile
-	source ~/.profile
 }
 function Init()
 {	
