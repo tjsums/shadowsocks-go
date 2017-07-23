@@ -229,7 +229,7 @@ do_start() {
   fi
   echo "starting $NAME"
   # sudo will set the group to the primary group of $USER
-  $BIN -c $CONFIG_FILE >>$LOG_FILE &
+  $BIN -c $CONFIG_FILE -u>>$LOG_FILE &
   PID=$!
   echo $PID > $PID_FILE
   sleep 0.3
