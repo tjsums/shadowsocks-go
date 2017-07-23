@@ -122,7 +122,7 @@ function InstallGoEnvironment()
 	echo "PATH=\$PATH:\$GOROOT/bin" >> ~/.profile
 	source ~/.profile
 	
-	echo "export GOPATH=${ShadowsocksDir}" >> ~/.profile
+	echo "export GOPATH=${ShadowsocksDir}/packages/${ShadowsocksType}" >> ~/.profile
 	echo "PATH=\$PATH:\$GOPATH/bin" >> ~/.profile
 	source ~/.profile
 }
@@ -137,9 +137,10 @@ function InstallShadowsocksCore()
 	InstallGoEnvironment
 		
     #download shadowsocks-go
+    mkdir ${ShadowsocksDir}/packages/${ShadowsocksType}
     go get github.com/shadowsocks/shadowsocks-go/cmd/shadowsocks-server
 
-    chmod +x ${ShadowsocksDir}/bin/shadowsocks-server
+    chmod +x ${ShadowsocksDir}/packages/bin/shadowsocks-server
 
     #create configuration directory
 	mkdir -p /etc/${ShadowsocksType}
