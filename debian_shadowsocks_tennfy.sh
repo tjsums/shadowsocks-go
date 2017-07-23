@@ -152,7 +152,9 @@ function InstallShadowsocksCore()
     tar zxvf shadowsocks-server.tar.gz -C ${ShadowsocksDir}/packages
 	rm -f shadowsocks-server.tar.gz
 	
-    chmod +x ${ShadowsocksDir}/packages/shadowsocks-server/shadowsocks-server
+	mkdir ${ShadowsocksDir}/packages/shadowsocks-go
+	mv ${ShadowsocksDir}/packages/shadowsocks-server ${ShadowsocksDir}/packages/shadowsocks-go/shadowsocks-server 
+    chmod +x ${ShadowsocksDir}/packages/shadowsocks-go/shadowsocks-server 
 
     #create configuration directory
 	mkdir -p /etc/${ShadowsocksType}
@@ -272,9 +274,9 @@ esac
 
 exit $RET_VAL
 EOF
-    sed -i "/PATH=/i\NAME=${ShadowsocksType}" /etc/init.d/${ShadowsocksType}
-    sed -i "/PATH=/i\CONFIG_FILE=\/etc\/${ShadowsocksType}\/config.json" /etc/init.d/${ShadowsocksType}
-    sed -i "/PATH=/i\BIN=${ShadowsocksDir}\/packages/shadowsocks-server\/shadowsocks-server" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/a\NAME=${ShadowsocksType}" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/a\CONFIG_FILE=\/etc\/${ShadowsocksType}\/config.json" /etc/init.d/${ShadowsocksType}
+    sed -i "/PATH=/a\BIN=${ShadowsocksDir}\/packages/shadowsocks-go\/shadowsocks-server" /etc/init.d/${ShadowsocksType}
     chmod +x /etc/init.d/${ShadowsocksType}
 }
 function UninstallShadowsocksCore()
