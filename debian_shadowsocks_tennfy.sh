@@ -54,6 +54,27 @@ function CheckSanity()
 		Die "Distribution is not supported"
 	fi
 }
+function PackageInstall()
+{
+    apt-get update
+    for package in $*  
+    do  
+			echo "[${package} Installing] ************************************************** >>"
+			apt-get install -y --force-yes $package 
+			if [ $? -ne 0 ]
+			then
+			     Die "${package} install failed"
+			fi
+    done  
+}
+function Download()
+{
+	wget --no-check-certificate -c $1
+	if [ $? -ne 0 ]
+	then
+		Die "File download failed"
+	fi
+}
 function GetDebianVersion()
 {
 	if [ -f /etc/debian_version ]
@@ -119,11 +140,11 @@ function InstallGoEnvironment()
 	
     #install go environment
     if GetSystemBit 64; then
-	    wget --no-check-certificate http://golang.org/dl/go${GolangVersion}.linux-amd64.tar.gz 
+	    Download http://golang.org/dl/go${GolangVersion}.linux-amd64.tar.gz 
 	    tar xf go${GolangVersion}.linux-amd64.tar.gz -C ${GoDir}
 	    rm go${GolangVersion}.linux-amd64.tar.gz
     else
-	    wget --no-check-certificate http://golang.org/dl/go${GolangVersion}.tar.gz 
+	    Download http://golang.org/dl/go${GolangVersion}.tar.gz 
 	    tar xf go${GolangVersion}.linux-386.tar.gz -C ${GoDir}
 	    rm go${GolangVersion}.linux-386.tar.gz
     fi
@@ -141,14 +162,13 @@ function InstallGoEnvironment()
 function InstallShadowsocksCore() 
 {
     #install
-    apt-get update
-    apt-get install -y --force-yes git mercurial curl
+    PackageInstall git mercurial curl
 	
     #get latest shadowsocks-libev release version
 	GetLatestShadowsocksVersion
 		
     #download shadowsocks-go
-    wget --no-check-certificate https://github.com/shadowsocks/shadowsocks-go/releases/download/${ShadowsocksVersion}/shadowsocks-server.tar.gz
+    Download https://github.com/shadowsocks/shadowsocks-go/releases/download/${ShadowsocksVersion}/shadowsocks-server.tar.gz
     tar zxvf shadowsocks-server.tar.gz -C ${ShadowsocksDir}/packages
 	rm -f shadowsocks-server.tar.gz
 	
