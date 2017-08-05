@@ -379,7 +379,8 @@ function InstallShadowsocks()
 		then
 			echo -e "${CWARNING} input error! Please only input number 1~${#Ciphers[@]} ${CEND}"
 		else
-			encrypt_method=${Ciphers[$(let $encrypt_method_num -1)]}			
+		    let encrypt_method_num=encrypt_method_num-1
+			encrypt_method=${Ciphers[$encrypt_method_num]}			
 			break
 		fi
 	done
