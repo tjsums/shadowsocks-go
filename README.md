@@ -6,6 +6,7 @@ Debian/Ubuntu shadowsocks-go one-click script
 ## Requirements
 * Debian7 32 & 64 bit
 * Debian8 32 & 64 bit 
+* Debian9 32 & 64 bit 
 
 ## Use
 ### Download Script
