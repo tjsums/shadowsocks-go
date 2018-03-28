@@ -56,7 +56,6 @@ function CheckSanity()
 }
 function PackageInstall()
 {
-    apt-get update
     for package in $*  
     do  
 			echo "[${package} Installing] ************************************************** >>"
@@ -311,6 +310,8 @@ function UninstallShadowsocksCore()
 }
 function Init()
 {	
+	apt-get update
+	
 	cd /root
 	
     #create packages and conf directory
@@ -321,9 +322,6 @@ function Init()
 	mkdir ${ShadowsocksDir}
 	mkdir ${ShadowsocksDir}/packages
 	mkdir ${ShadowsocksDir}/conf
-
-	#init system
-	CheckSanity
 }
 ############################### install function##################################
 function InstallShadowsocks()
@@ -461,6 +459,8 @@ function UpdateShadowsocks()
     echo -e "${CSUCCESS}${ShadowsocksType} update success!${CEND}"
 }
 ############################### Initialization##################################
+CheckSanity
+
 action=$1
 [ -z $1 ] && action=install
 case "$action" in
